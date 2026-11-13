@@ -1,6 +1,7 @@
 name: Apply Project Factory
 
 on:
+  workflow_dispatch:
   push:
     branches: [plan]
     paths:
@@ -36,10 +37,10 @@ jobs:
             suffix=$(printf "%04x" $((RANDOM % 65536)))
             pid="prj-${code}-${slug}-${suffix}"
             echo "Creating project $pid in folder 559013322416..."
-            gcloud projects create "$pid" --folder=559013322416 --name="$slug ($env)" --quiet
+            gcloud projects create "$pid" --folder=559013322416 --name="${slug}-${env}" --quiet
             gcloud billing projects link "$pid" --billing-account=013F9D-224824-07DDCA --quiet || echo "Billing link skipped (no billing.user IAM on SA)"
             gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com iamcredentials.googleapis.com storage.googleapis.com --project="$pid" --quiet || echo "Service enablement skipped"
-            gcloud iam service-accounts create sa-iac-runner --project="$pid" --display-name="Tenant IaC Runner ($slug)" --quiet
+            gcloud iam service-accounts create sa-iac-runner --project="$pid" --display-name="Tenant IaC Runner ${slug}" --quiet
             sa_email="sa-iac-runner@${pid}.iam.gserviceaccount.com"
             for r in roles/editor roles/storage.admin roles/iam.serviceAccountAdmin roles/resourcemanager.projectIamAdmin; do
               gcloud projects add-iam-policy-binding "$pid" --member="serviceAccount:${sa_email}" --role="$r" --quiet >/dev/null
