@@ -1,0 +1,8 @@
+remote_state_bucket = "bkt-agco-ws1-pso-pf-tfstate"
+golden_path         = "ml-modeling"
+business_code       = "gp-demo-3"
+business_unit       = "ai-platform"
+project_suffix      = "gp-demo-3"
+billing_code        = "1001042"
+primary_contact     = "guest"
+secondary_contact   = ""
