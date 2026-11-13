@@ -1,8 +1,0 @@
-remote_state_bucket = "bkt-agco-ws1-pso-pf-tfstate"
-golden_path         = "ml-modeling"
-business_code       = "ml-cv"
-business_unit       = "ai-platform"
-project_suffix      = "ml-cv"
-billing_code        = "1004200"
-primary_contact     = "guest"
-secondary_contact   = ""

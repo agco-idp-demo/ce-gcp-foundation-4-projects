@@ -1,0 +1,57 @@
+name: Apply Project Factory
+
+on:
+  push:
+    branches: [plan]
+    paths:
+      - "**/terraform.tfvars"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: projects/33236004616/locations/global/workloadIdentityPools/shared-pool/providers/shared-gh-provider
+          service_account: sa-github-actions-ci@agco-ws1-pso.iam.gserviceaccount.com
+      - uses: google-github-actions/setup-gcloud@v2
+      - name: Provision tenant GCP project, sa-iac-runner & WIF
+        run: |
+          set -euo pipefail
+          for tfvars in */*/terraform.tfvars; do
+            [ -f "$tfvars" ] || continue
+            slug=$(echo "$tfvars" | cut -d/ -f1)
+            env=$(echo "$tfvars" | cut -d/ -f2)
+            code="${env:0:1}"
+            existing=$(gcloud projects list --filter="parent.id=559013322416 AND projectId:prj-${code}-${slug}-* AND lifecycleState=ACTIVE" --format="value(projectId)" | head -n1 || true)
+            if [ -n "$existing" ]; then
+              echo "Project already exists for $slug/$env: $existing"
+              continue
+            fi
+            suffix=$(printf "%04x" $((RANDOM % 65536)))
+            pid="prj-${code}-${slug}-${suffix}"
+            echo "Creating project $pid in folder 559013322416..."
+            gcloud projects create "$pid" --folder=559013322416 --name="$slug ($env)" --quiet
+            gcloud billing projects link "$pid" --billing-account=013F9D-224824-07DDCA --quiet
+            gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com iamcredentials.googleapis.com storage.googleapis.com compute.googleapis.com --project="$pid" --quiet
+            gcloud iam service-accounts create sa-iac-runner --project="$pid" --display-name="Tenant IaC Runner ($slug)" --quiet
+            sa_email="sa-iac-runner@${pid}.iam.gserviceaccount.com"
+            for r in roles/editor roles/storage.admin roles/iam.serviceAccountAdmin roles/resourcemanager.projectIamAdmin; do
+              gcloud projects add-iam-policy-binding "$pid" --member="serviceAccount:${sa_email}" --role="$r" --quiet >/dev/null
+            done
+            gcloud iam service-accounts add-iam-policy-binding "$sa_email" \
+              --project="$pid" \
+              --role=roles/iam.workloadIdentityUser \
+              --member="principalSet://iam.googleapis.com/projects/33236004616/locations/global/workloadIdentityPools/shared-pool/attribute.repository/agco-idp-demo/${slug}-iac" \
+              --quiet >/dev/null
+            gcloud storage buckets add-iam-policy-binding gs://bkt-agco-ws1-pso-tfstate \
+              --member="serviceAccount:${sa_email}" \
+              --role=roles/storage.objectAdmin \
+              --quiet >/dev/null || true
+            echo "Provisioned $pid with $sa_email and WIF for agco-idp-demo/${slug}-iac"
+          done
