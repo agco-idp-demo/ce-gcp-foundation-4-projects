@@ -3,7 +3,7 @@ name: Apply Project Factory
 on:
   workflow_dispatch:
   push:
-    branches: [plan]
+    branches: [test]
     paths:
       - "**/terraform.tfvars"
 

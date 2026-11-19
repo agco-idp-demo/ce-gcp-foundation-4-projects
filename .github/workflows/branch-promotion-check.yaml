@@ -1,0 +1,27 @@
+name: Branch Promotion Enforcement
+
+on:
+  pull_request:
+    branches: [test, staging, production]
+    types: [opened, synchronize, reopened]
+
+jobs:
+  enforce-branch-flow:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check valid source branch
+        run: |
+          BASE="${{ github.base_ref }}"
+          HEAD="${{ github.head_ref }}"
+          echo "PR attempting: $HEAD -> $BASE"
+          if [[ "$BASE" == "test" && "$HEAD" != "plan" ]]; then
+            echo "ERROR: Only 'plan' can merge into 'test'"
+            exit 1
+          elif [[ "$BASE" == "staging" && "$HEAD" != "test" ]]; then
+            echo "ERROR: Only 'test' can merge into 'staging'"
+            exit 1
+          elif [[ "$BASE" == "production" && "$HEAD" != "staging" ]]; then
+            echo "ERROR: Only 'staging' can merge into 'production'"
+            exit 1
+          fi
+          echo "Branch promotion valid!"

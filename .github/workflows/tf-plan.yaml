@@ -1,0 +1,17 @@
+name: "tf-plan"
+on:
+  push:
+    branches:
+      - feature/*
+
+jobs:
+  run:
+    runs-on: "ubuntu-latest"
+    steps:
+      - uses: "actions/checkout@v4"
+      - name: Validate project-factory tfvars
+        run: |
+          set -euo pipefail
+          count=$(find . -mindepth 3 -maxdepth 3 -name terraform.tfvars | wc -l)
+          echo "Found $count terraform.tfvars file(s)"
+          [ "$count" -gt 0 ]
