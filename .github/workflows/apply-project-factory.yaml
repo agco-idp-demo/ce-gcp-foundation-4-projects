@@ -42,6 +42,7 @@ jobs:
             gcloud services enable cloudresourcemanager.googleapis.com iam.googleapis.com iamcredentials.googleapis.com storage.googleapis.com --project="$pid" --quiet || echo "Service enablement skipped"
             gcloud iam service-accounts create sa-iac-runner --project="$pid" --display-name="Tenant IaC Runner ${slug}" --quiet
             sa_email="sa-iac-runner@${pid}.iam.gserviceaccount.com"
+            sleep 10
             for r in roles/editor roles/storage.admin roles/iam.serviceAccountAdmin roles/resourcemanager.projectIamAdmin; do
               gcloud projects add-iam-policy-binding "$pid" --member="serviceAccount:${sa_email}" --role="$r" --quiet >/dev/null
             done
